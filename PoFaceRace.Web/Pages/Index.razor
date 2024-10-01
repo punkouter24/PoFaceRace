@@ -1,0 +1,43 @@
+@page "/"
+@using PoFaceRace.Web
+@inject NavigationManager NavigationManager
+
+<h1>PoFaceRace</h1>
+<h2>Pick a Racer</h2>
+
+<div class="racer-grid">
+    @foreach (var racer in racers)
+    {
+        <div class="racer @(selectedRacer == racer ? "selected" : "")" @onclick="() => SelectRacer(racer)">
+            <div class="racer-square" style="background-color: @racer.Color;"></div>
+            <div class="racer-name">@racer.Name</div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Racer> racers = new List<Racer>
+    {
+        new Racer("Red Rocket", "red"),
+        new Racer("Blue Bolt", "blue"),
+        new Racer("Green Machine", "green"),
+        new Racer("Yellow Flash", "yellow"),
+        new Racer("Purple Power", "purple"),
+        new Racer("Orange Streak", "orange"),
+        new Racer("Pink Panther", "pink"),
+        new Racer("Cyan Comet", "cyan")
+    };
+
+    private Racer selectedRacer;
+
+    private void SelectRacer(Racer racer)
+    {
+        selectedRacer = racer;
+        // TODO: Implement disappearing animation for non-selected racers
+        // For now, we'll just navigate to the game page after a short delay
+        Task.Delay(2000).ContinueWith(_ =>
+        {
+            NavigationManager.NavigateTo($"/game/{racer.Name}");
+        });
+    }
+}

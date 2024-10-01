@@ -1,0 +1,135 @@
+@page "/game/{RacerName}"
+@using PoFaceRace.Web
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h1>Race in Progress</h1>
+
+@if (isCountingDown)
+{
+    <div class="countdown">@countdown</div>
+}
+else if (!raceFinished)
+{
+    <div class="race-track">
+        @foreach (var racer in racers)
+        {
+            <div class="racer-lane">
+                <div class="racer @(racer.Name == RacerName ? "selected" : "")" style="left: @(racer.Position)%;">
+                    <div class="racer-square" style="background-color: @racer.Color;"></div>
+                    <div class="racer-name">@racer.Name</div>
+                </div>
+            </div>
+        }
+        <div class="finish-line"></div>
+    </div>
+}
+else
+{
+    <div class="race-result">
+        <h2>@winner.Name wins!</h2>
+        <p>Race Time: @raceTime.TotalSeconds.ToString("F2") seconds</p>
+        @if (winner.Name == RacerName)
+        {
+            <p>Congratulations! Your racer won!</p>
+        }
+        else
+        {
+            <p>Better luck next time!</p>
+        }
+        <button @onclick="ResetGame">Play Again</button>
+    </div>
+}
+
+<audio id="countdownSound" src="sounds/beep.mp3"></audio>
+<audio id="finishSound" src="sounds/cheer.mp3"></audio>
+
+@code {
+    [Parameter]
+    public string RacerName { get; set; }
+
+    private List<Racer> racers;
+    private bool isCountingDown = true;
+    private int countdown = 3;
+    private bool raceFinished = false;
+    private Racer winner;
+    private TimeSpan raceTime;
+    private System.Timers.Timer timer;
+    private DateTime raceStartTime;
+
+    protected override void OnInitialized()
+    {
+        racers = new List<Racer>
+        {
+            new Racer("Red Rocket", "red"),
+            new Racer("Blue Bolt", "blue"),
+            new Racer("Green Machine", "green"),
+            new Racer("Yellow Flash", "yellow"),
+            new Racer("Purple Power", "purple"),
+            new Racer("Orange Streak", "orange"),
+            new Racer("Pink Panther", "pink"),
+            new Racer("Cyan Comet", "cyan")
+        };
+
+        StartCountdown();
+    }
+
+    private async Task StartCountdown()
+    {
+        timer = new System.Timers.Timer(1000);
+        timer.Elapsed += async (sender, e) => 
+        {
+            await InvokeAsync(async () =>
+            {
+                countdown--;
+                await JSRuntime.InvokeVoidAsync("playSound", "countdownSound");
+                if (countdown == 0)
+                {
+                    isCountingDown = false;
+                    StartRace();
+                }
+                StateHasChanged();
+            });
+        };
+        timer.Start();
+    }
+
+    private void StartRace()
+    {
+        timer.Stop();
+        raceStartTime = DateTime.Now;
+        timer = new System.Timers.Timer(100);
+        timer.Elapsed += (sender, e) => 
+        {
+            InvokeAsync(() =>
+            {
+                MoveRacers();
+                StateHasChanged();
+            });
+        };
+        timer.Start();
+    }
+
+    private async Task MoveRacers()
+    {
+        Random random = new Random();
+        foreach (var racer in racers)
+        {
+            racer.Position += random.Next(1, 5) * 0.1; // Slower movement
+            if (racer.Position >= 95) // Changed from 100 to 95 to account for the width of the racer
+            {
+                raceFinished = true;
+                winner = racer;
+                raceTime = DateTime.Now - raceStartTime;
+                timer.Stop();
+                await JSRuntime.InvokeVoidAsync("playSound", "finishSound");
+                break;
+            }
+        }
+    }
+
+    private void ResetGame()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+}
