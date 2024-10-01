@@ -5,6 +5,7 @@ html, body {
 h1:focus {
     outline: none;
 }
+ 
 
 .racer-grid {
     display: flex;
